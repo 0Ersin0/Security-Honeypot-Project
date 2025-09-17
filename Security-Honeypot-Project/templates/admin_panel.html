@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Güvenlik Yönetim Paneli</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 20px; }
+        .container { max-width: 1200px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        h1 { color: #333; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .sql-injection-event { background-color: #f8d7da; color: #721c24; font-weight: bold; }
+        .brute-force-event { background-color: #fff3cd; color: #856404; }
+        .btn-block { background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+        .btn-block:hover { background-color: #c82333; }
+        .flash-message { padding: 10px; margin-bottom: 15px; border-radius: 4px; font-weight: bold; }
+        .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .filters select, .filters input { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Güvenlik Yönetim Paneli</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="filters">
+            <form action="{{ url_for('admin_panel') }}" method="get">
+                <label for="search_term">Ara:</label>
+                <input type="text" id="search_term" name="search_term" placeholder="IP Adresi Ara" value="{{ search_term }}">
+                
+                <label for="filter_type">Filtrele:</label>
+                <select name="filter_type" id="filter_type">
+                    <option value="all" {% if filter_type == 'all' %}selected{% endif %}>Tümü</option>
+                    <option value="SQL_INJECTION" {% if filter_type == 'SQL_INJECTION' %}selected{% endif %}>SQL Enjeksiyonu</option>
+                    <option value="BRUTE_FORCE_ATTEMPT" {% if filter_type == 'BRUTE_FORCE_ATTEMPT' %}selected{% endif %}>Brute-Force Denemesi</option>
+                </select>
+                <button type="submit">Uygula</button>
+            </form>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>IP Adresi</th>
+                    <th>Kullanıcı Adı</th>
+                    <th>Şifre</th>
+                    <th>Zaman</th>
+                    <th>Olay Tipi</th>
+                    <th>İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr class="{{ 'sql-injection-event' if 'SQL_INJECTION' in log[5] else 'brute-force-event' }}">
+                    <td>{{ log[0] }}</td>
+                    <td>{{ log[1] }}</td>
+                    <td>{{ log[2] }}</td>
+                    <td>{{ log[3] }}</td>
+                    <td>{{ log[4] }}</td>
+                    <td>{{ log[5] }}</td>
+                    <td>
+                        {% if log[1] not in blocked_ips %}
+                        <form action="{{ url_for('admin_panel') }}" method="post" style="display:inline;">
+                            <input type="hidden" name="block_ip" value="{{ log[1] }}">
+                            <button type="submit" class="btn-block">Engelle</button>
+                        </form>
+                        {% else %}
+                        <span>Engellendi</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
